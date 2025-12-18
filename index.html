@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Inter, system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            height: 720px;
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .setup {
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .setup h1 {
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 28px;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            background: #f1f5f9;
+            outline: none;
+            font-size: 14px;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: 2px solid #3b82f6;
+            background: #fff;
+        }
+
+        textarea {
+            resize: none;
+            margin-bottom: 14px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            background: #0f172a;
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .chat {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #2563eb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .status {
+            font-size: 10px;
+            color: #22c55e;
+            font-weight: 700;
+        }
+
+        .reset {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .reset:hover {
+            color: #ef4444;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 14px;
+            white-space: pre-wrap;
+        }
+
+        .msg.user {
+            margin-left: auto;
+            background: #2563eb;
+            color: white;
+        }
+
+        .msg.ai {
+            background: white;
+            color: #334155;
+            border: 1px solid #e5e7eb;
+
+        }
+
+        .input {
+            padding: 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input input {
+            flex: 1;
+        }
+
+        .send {
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+        }
+
+        .send:hover {
+            background: #1d4ed8;
+        }
+
+        .send.loading {
+            background: #94a3b8;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .send.loading::after {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- SETUP -->
+        <div class="setup" id="setup">
+            <h1>AI ChatBot</h1>
+
+            <div class="row">
+                <input id="name" placeholder="Tên nhân vật">
+                <input id="job" placeholder="Nghề nghiệp">
+            </div>
+
+            <textarea id="bio" rows="3" placeholder="Tiểu sử"></textarea>
+
+            <select id="style">
+                <option>Thông minh</option>
+                <option>Cà khịa</option>
+                <option>Chuyên nghiệp</option>
+                <option>Chuyên gia</option>
+                <option>Hài hước</option>
+                <option>Thân thiện</option>
+            </select>
+
+            <br><br>
+
+            <button class="btn-primary" onclick="init()">CHAT</button>
+        </div>
+
+        <!-- CHAT -->
+        <div class="chat" id="chat">
+            <div class="header">
+                <div class="user">
+                    <div class="avatar" id="avatar"></div>
+                    <div>
+                        <div class="status">Xin chào</div>
+                        <div class="name" id="persona"></div>
+                    </div>
+                </div>
+                <button class="reset" onclick="location.reload()">Thoát</button>
+            </div>
+
+            <div class="messages" id="messages"></div>
+
+            <div class="input">
+                <input id="text" placeholder="Nội dung tin nhắn..." onkeydown="if(event.key==='Enter')send()">
+                <button class="send" id="sendBtn" onclick="send()">Gửi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        const GEMINI_KEY = "AIzaSyAjTEbPsT01JWRh5tN7s5PxN4Nlx4BoCGw";
+        const COHERE_KEY = "Gb1Ioc0dCOG94dJW8hJw5milzO2LQnwwFTZ7kB7X";
+
+        const setup = document.getElementById("setup");
+        const chat = document.getElementById("chat");
+        const nameInput = document.getElementById("name");
+        const jobInput = document.getElementById("job");
+        const bioInput = document.getElementById("bio");
+        const styleSelect = document.getElementById("style");
+        const avatar = document.getElementById("avatar");
+        const persona = document.getElementById("persona");
+        const messages = document.getElementById("messages");
+        const textInput = document.getElementById("text");
+        const sendBtn = document.getElementById("sendBtn");
+
+        let config = {};
+        let loading = false;
+
+        function updateUi(role, text) {
+            const div = document.createElement("div");
+            div.className = `msg ${role}`;
+            div.textContent = text;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showLoading() {
+            sendBtn.classList.add("loading");
+            sendBtn.textContent = "";
+            sendBtn.disabled = true;
+        }
+
+         function hideLoading() {
+            sendBtn.classList.remove("loading");
+            sendBtn.textContent = "Gửi";
+            sendBtn.disabled = false;
+        }
+
+        function init() {
+            if (!nameInput.value || !jobInput.value) return;
+
+            config = {
+                name: nameInput.value,
+                job: jobInput.value,
+                bio: bioInput.value,
+                style: styleSelect.value
+            };
+
+            setup.style.display = "none";
+            chat.style.display = "flex";
+
+            avatar.textContent = config.name[0].toUpperCase();
+            persona.textContent = config.name;
+
+            updateUi("ai", `Xin chào! Tôi là ${config.name}. Tôi có thể giúp gì cho bạn.`);
+        }
+
+        async function chatWithGemini(input) {
+            try {
+                const res = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/chat-bison-001:generateMessage`,
+                    { prompt: { text: input },
+                        "temperature": 0.7,
+                        "max_output_tokens": 512
+                    },
+                    { headers: { Authorization: `Bearer ${GEMINI_KEY}` } }
+                );
+
+                const answer = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                updateUi("ai", answer ? answer.replace(/\*\*/g, "") : "Không có phản hồi");
+            } catch (e) {
+                console.error(e);
+                updateUi("ai", "Có lỗi xảy ra, hãy thử lại!");
+            }
+        }
+
+        async function chatWithCohere(input) {
+            try {
+                const res = await fetch("https://api.cohere.ai/v1/chat", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${COHERE_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: input,
+                        preamble: prompt,
+                        max_tokens: 2048
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.text) {
+                    updateUi("ai", data.text.replace(/\*\*/g, ""));
+                } else {
+                    updateUi("ai", "Không có phản hồi từ AI");
+                }
+
+            } catch (e) {
+                console.error(e);
+                updateUi("ai", "Hệ thống bận, hãy thử lại!");
+            }
+        }
+
+        async function send() {
+            if (loading || !textInput.value.trim()) return;
+            loading = true;
+            showLoading();
+
+            const input = textInput.value;
+            textInput.value = "";
+            updateUi("user", input);
+
+            const prompt = `Bạn là ${config.name}, một ${config.job}. Tiểu sử: ${config.bio} Phong cách: ${config.style} Trả lời tự nhiên, có xuống dòng, không dùng **.`;
+
+            //await chatWithGemini(input);
+            await chatWithCohere(input);
+
+            loading = false;
+            hideLoading();
+        }
+    </script>
+
+</body>
+
+</html>
